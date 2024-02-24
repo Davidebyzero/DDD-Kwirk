@@ -1,6 +1,7 @@
 import std.file;
 import std.string;
 import std.stdio;
+import std.algorithm;
 
 void main()
 {
@@ -9,7 +10,7 @@ void main()
 		try
 		{
 			string[] level, userOptions;
-			foreach (line; splitlines(cast(string)read(format("%d.txt", levelNr))))
+			foreach (line; splitLines(cast(string)read(format("%d.txt", levelNr))))
 			{
 				if (line.length==0)
 					continue;
@@ -25,15 +26,15 @@ void main()
 			}
 
 			enum Cell { Floor, Wall, Hole, Exit, Player, TurnstileUp, TurnstileRight, TurnstileDown, TurnstileLeft, TurnstileCenter, Block }
-			struct Block { int x, y, w, h, ix, iy, index; int opCmp(Block* other) { return w!=other.w ? w-other.w : h!=other.h ? h-other.h : y!=other.y ? y-other.y : x-other.x; } }
+			struct Block { int x, y, w, h, ix, iy, index; int opCmp(ref Block other) { return w!=other.w ? w-other.w : h!=other.h ? h-other.h : y!=other.y ? y-other.y : x-other.x; } }
 			enum TurnstileType { Uni, RightAngle, Straight, Tri, Plus, Max }
-			const string turnstileTypeNames[TurnstileType.Max] = ["Uni", "RightAngle", "Straight", "Tri", "Plus"];
+			const string[TurnstileType.Max] turnstileTypeNames = ["Uni", "RightAngle", "Straight", "Tri", "Plus"];
 			//const int turnstileBits[TurnstileType.Max] = [2, 2, 1, 2, 0];
 			struct Turnstile { int x, y; TurnstileType type; }
 			struct Hole { int x, y; }
 			struct Player { int x, y; }
 
-			int width=level[0].length, height=level.length, xBits = log2(width-2), yBits = log2(height-2);
+			int width=cast(int)level[0].length, height=cast(int)level.length, xBits = log2(width-2), yBits = log2(height-2);
 
 			Cell[][] map;
 			map.length = height;
@@ -56,7 +57,7 @@ void main()
 			Turnstile[] turnstiles;
 			Hole[] holes;
 			Player[] players;
-		
+
 			foreach (y, line; level)
 				foreach (x, c; line)
 					switch (c)
@@ -70,51 +71,51 @@ void main()
 							break;
 						case 'O':
 							map[y][x] = Cell.Hole;
-							holeIndices[y][x] = holes.length;
-							holes ~= Hole(x, y);
+							holeIndices[y][x] = cast(int)holes.length;
+							holes ~= Hole(cast(int)x, cast(int)y);
 							break;
 						case '1':
 							map[y][x] = Cell.Floor;
 							if (players.length<1) players.length = 1;
-							players[0] = Player(x, y);
+							players[0] = Player(cast(int)x, cast(int)y);
 							break;
 						case '2':
 							map[y][x] = Cell.Exit;
 							enforce(exitX==0 && exitY==0, "Multiple exits");
-							exitX = x;
-							exitY = y;
+							exitX = cast(int)x;
+							exitY = cast(int)y;
 							break;
 						case '3':
 							map[y][x] = Cell.Player;
 							if (players.length<2) players.length = 2;
-							players[1] = Player(x, y);
+							players[1] = Player(cast(int)x, cast(int)y);
 							break;
 						case '4':
 							map[y][x] = Cell.Player;
 							if (players.length<3) players.length = 3;
-							players[2] = Player(x, y);
+							players[2] = Player(cast(int)x, cast(int)y);
 							break;
 						case '5':
 							map[y][x] = Cell.Player;
 							if (players.length<4) players.length = 4;
-							players[3] = Player(x, y);
+							players[3] = Player(cast(int)x, cast(int)y);
 							break;
 						case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h': case 'i': case 'j': case 'k': case 'l': case 'm': case 'n': case 'o': case 'p': case 'q': case 'r': case 's': case 't': case 'u': case 'v': case 'w': case 'x': case 'y': case 'z':
 							if (!seenBlocks[c])
 							{
 								enforce(x>0 && x<width -1 && y>0 && y<height-1, "Misplaced block");
-								int x2=x, y2=y;
+								int x2=cast(int)x, y2=cast(int)y;
 								while (level[y][x2]==c)
 									x2++;
 								while (level[y2][x]==c)
 									y2++;
-								for (int j=y; j<y2; j++)
-									for (int i=x; i<x2; i++)
+								for (int j=cast(int)y; j<y2; j++)
+									for (int i=cast(int)x; i<x2; i++)
 									{
 										map    [j][i] = Cell.Block;
-										indices[j][i] = blocks.length;
+										indices[j][i] = cast(int)blocks.length;
 									}
-								blocks ~= Block(x, y, x2-x, y2-y);
+								blocks ~= Block(cast(int)x, cast(int)y, x2-cast(int)x, y2-cast(int)y);
 								seenBlocks[c] = true;
 							}
 							break;
@@ -140,14 +141,14 @@ void main()
 								if (c2 == DR[d])
 									isCenter = true;
 								if (c2 == c || c2 == DR[d])
-									wings ~= d;
+									wings ~= cast(ubyte)d;
 							}
 							if (!wings.length)
 								throw new Exception("Zero-wing turnstile?");
 							if (wings.length>1 || isCenter) // are we on center?
 							{
 								map[y][x] = Cell.TurnstileCenter;
-								indices[y][x] = turnstiles.length;
+								indices[y][x] = cast(int)turnstiles.length;
 								TurnstileType type;
 								switch (wings.length)
 								{
@@ -169,7 +170,7 @@ void main()
 									default:
 										throw new Exception("Bad turnstile wings: " ~ format("%s", wings));
 								}
-								turnstiles ~= Turnstile(x, y, type);
+								turnstiles ~= Turnstile(cast(int)x, cast(int)y, type);
 							}
 							else
 								switch (wings[0]^2)
@@ -178,6 +179,7 @@ void main()
 									case 1: map[y][x] = Cell.TurnstileRight; break;
 									case 2: map[y][x] = Cell.TurnstileDown ; break;
 									case 3: map[y][x] = Cell.TurnstileLeft ; break;
+									default: break;
 								}
 							break;
 						}
@@ -193,11 +195,11 @@ void main()
 
 			// sort blocks by size
 			foreach (i, ref block; blocks)
-				block.index = i;
+				block.index = cast(int)i;
 			blocks.sort;
-			int[] blockMap = new int[blocks.length];
+			int[] blockMap = new int[cast(int)blocks.length];
 			foreach (i, block; blocks)
-				blockMap[block.index] = i;
+				blockMap[block.index] = cast(int)i;
 			foreach (y, line; map)
 				foreach (x, c; line)
 					if (c == Cell.Block)
@@ -275,19 +277,20 @@ void main()
 					case TurnstileType.Plus:
 						// Stateless!
 						break;
+					default: break;
 				}
 			}
 			foreach (i, hole; holes)
 				fields ~= Field(1, format("hole%d", i), 1);
 
 			// **********************************************************************************************************
-			
+
 			const uint COMPRESSED_BIT_ALIGNMENT = 32;
 			const string COMPRESSED_BIT_TYPE = "unsigned";
 
 			struct Slot { Field[] fields; int size() { int bits; foreach (field; fields) bits += field.size; return bits; } int bitsLeft() { return COMPRESSED_BIT_ALIGNMENT - size(); } }
 			Slot[] slots;
-			
+
 			//fields.reverse.sort.reverse;
 			foreach (field; fields)
 			{
@@ -339,9 +342,9 @@ void main()
 			output ~= "";
 			output ~= "	const char* toString() const;";
 			output ~= "};";
-			
+
 			output ~= "";
-			write(format("%d.h", levelNr), output.join(\n));
+			std.file.write(format("%d.h", levelNr), output.join('\n'));
 
 			// **********************************************************************************************************
 
@@ -389,14 +392,15 @@ void main()
 							break;
 						case Cell.TurnstileCenter:
 							name = "CELL_WALL";
-							index = .toString(indices[y][x]);
+							index = (indices[y][x]).stringof;
 							break;
 						case Cell.Block:
 							name = "CELL_BLOCK";
-							index = .toString(indices[y][x]);
+							index = (indices[y][x]).stringof;
 							break;
+						default: break;
 					}
-					
+
 					if (index)
 						cells ~= format("%-14s | %-5s", name, index);
 					else
@@ -405,14 +409,14 @@ void main()
 				output ~= "		{ " ~ cells.join(", ") ~ " },";
 			}
 			output ~= "	},";
-			
+
 			output ~= "	{ // players";
 			foreach (player; players)
 				output ~= format("		{ %2d, %2d },", player.x, player.y);
 			output ~= "	},";
-			
+
 			if (players.length>2)
-				output ~= "	false, // justSwitched"; 
+				output ~= "	false, // justSwitched";
 
 			output ~= "	{ // compressed";
 			foreach (slot; slots)
@@ -465,6 +469,7 @@ void main()
 									case Cell.TurnstileRight: index = "RIGHT"; break;
 									case Cell.TurnstileDown:  index = "DOWN" ; break;
 									case Cell.TurnstileLeft:  index = "LEFT" ; break;
+									default: break;
 								}
 							}
 							else
@@ -472,10 +477,11 @@ void main()
 							break;
 						case Cell.TurnstileCenter:
 							name = "CELL_WALL";
-							index = .toString(indices[y][x]);
+							index = (indices[y][x]).stringof;
 							break;
+						default: break;
 					}
-					
+
 					if (index)
 						cells ~= format("%-14s | %-5s", name, index);
 					else
@@ -521,37 +527,38 @@ void main()
 			if (players.length > 2)
 				output ~= "	sprintf(s+strlen(s), \"justSwitched=%d \", justSwitched);";
 			foreach (i, player; players)
-				output ~= "	sprintf(s+strlen(s), \"player"~.toString(i)~"=(%d,%d) \", player"~.toString(i)~"x+1, player"~.toString(i)~"y+1);";
+				output ~= "	sprintf(s+strlen(s), \"player"~(i).stringof~"=(%d,%d) \", player"~(i).stringof~"x+1, player"~(i).stringof~"y+1);";
 			foreach (i, block; blocks)
 			{
-				output ~= "	if (block"~.toString(i)~"x=="~.toString(block.ix-1)~" && block"~.toString(i)~"y=="~.toString(block.ix-1)~")";
-				output ~= "		sprintf(s+strlen(s), \"block"~.toString(i)~"["~.toString(block.w)~","~.toString(block.h)~"]=removed \");";
+				output ~= "	if (block"~(i).stringof~"x=="~(block.ix-1).stringof~" && block"~(i).stringof~"y=="~(block.ix-1).stringof~")";
+				output ~= "		sprintf(s+strlen(s), \"block"~(i).stringof~"["~(block.w).stringof~","~(block.h).stringof~"]=removed \");";
 				output ~= "	else";
-				output ~= "		sprintf(s+strlen(s), \"block"~.toString(i)~"["~.toString(block.w)~","~.toString(block.h)~"]=(%d,%d) \", block"~.toString(i)~"x+1, block"~.toString(i)~"y+1);";
+				output ~= "		sprintf(s+strlen(s), \"block"~(i).stringof~"["~(block.w).stringof~","~(block.h).stringof~"]=(%d,%d) \", block"~(i).stringof~"x+1, block"~(i).stringof~"y+1);";
 			}
 			foreach (i, turnstile; turnstiles)
 				switch (turnstile.type)
 				{
 					case TurnstileType.Uni:
-						output ~= "	sprintf(s+strlen(s), \"turnstile"~.toString(i)~"["~turnstileTypeNames[turnstile.type]~"@"~.toString(turnstile.x)~","~.toString(turnstile.y)~"]=%d \", turnstile"~.toString(i)~");"; 
+						output ~= "	sprintf(s+strlen(s), \"turnstile"~(i).stringof~"["~turnstileTypeNames[turnstile.type]~"@"~(turnstile.x).stringof~","~(turnstile.y).stringof~"]=%d \", turnstile"~(i).stringof~");";
 						break;
 					case TurnstileType.RightAngle:
-						output ~= "	sprintf(s+strlen(s), \"turnstile"~.toString(i)~"["~turnstileTypeNames[turnstile.type]~"@"~.toString(turnstile.x)~","~.toString(turnstile.y)~"]=%d%d \", turnstile"~.toString(i)~"a, turnstile"~.toString(i)~"b);"; 
+						output ~= "	sprintf(s+strlen(s), \"turnstile"~(i).stringof~"["~turnstileTypeNames[turnstile.type]~"@"~(turnstile.x).stringof~","~(turnstile.y).stringof~"]=%d%d \", turnstile"~(i).stringof~"a, turnstile"~(i).stringof~"b);";
 						break;
 					case TurnstileType.Straight:
-						output ~= "	sprintf(s+strlen(s), \"turnstile"~.toString(i)~"["~turnstileTypeNames[turnstile.type]~"@"~.toString(turnstile.x)~","~.toString(turnstile.y)~"]=%d \", turnstile"~.toString(i)~"a);"; 
+						output ~= "	sprintf(s+strlen(s), \"turnstile"~(i).stringof~"["~turnstileTypeNames[turnstile.type]~"@"~(turnstile.x).stringof~","~(turnstile.y).stringof~"]=%d \", turnstile"~(i).stringof~"a);";
 						break;
 					case TurnstileType.Tri:
-						output ~= "	sprintf(s+strlen(s), \"turnstile"~.toString(i)~"["~turnstileTypeNames[turnstile.type]~"@"~.toString(turnstile.x)~","~.toString(turnstile.y)~"]=%d \", turnstile"~.toString(i)~");"; 
+						output ~= "	sprintf(s+strlen(s), \"turnstile"~(i).stringof~"["~turnstileTypeNames[turnstile.type]~"@"~(turnstile.x).stringof~","~(turnstile.y).stringof~"]=%d \", turnstile"~(i).stringof~");";
 						break;
 					case TurnstileType.Plus:
 						break;
+					default: break;
 				}
 			if (holes)
 			{
-				output ~= "	strcat(s, \"holes=\");"; 
+				output ~= "	strcat(s, \"holes=\");";
 				foreach (i, hole; holes)
-					output ~= "	sprintf(s+strlen(s), \"%d\", hole"~.toString(i)~");";
+					output ~= "	sprintf(s+strlen(s), \"%d\", hole"~(i).stringof~");";
 			}
 
 			output ~= "	return s;";
@@ -643,6 +650,7 @@ void main()
 					case TurnstileType.Plus:
 						output ~= format("		// Stateless - the wings are already in the blanked template");
 						break;
+					default: break;
 				}
 				output ~= format("	}");
 			}
@@ -655,13 +663,13 @@ void main()
 			output ~= "	DEBUG_ONLY(uncompressedUpdated = true);";
 			output ~= "}";
 			output ~= "";
-			
+
 			// **********************************************************************************************************
 
 			// Placeholder for future dynamically generated code. Function should return "false" if the states can
 			// quickly be determined not to be parent and child; otherwise it should return "true", even if more
 			// calculations could reveal that they could not be parent and child.
-			
+
 			output ~= "INLINE bool canStatesBeParentAndChild(const CompressedState *parent, const CompressedState *child)";
 			output ~= "{";
 			output ~= "	return true;";
@@ -677,7 +685,7 @@ void main()
 			output ~= "	compressed.player0y = y;";
 			output ~= "}";
 			output ~= "";
-			
+
 			// **********************************************************************************************************
 
 			if (players.length>1)
@@ -708,7 +716,7 @@ void main()
 				output ~= "}";
 				output ~= "";
 			}
-			
+
 			// **********************************************************************************************************
 
 			if (holes)
@@ -728,7 +736,7 @@ void main()
 				output ~= "}";
 				output ~= "";
 			}
-			
+
 			// **********************************************************************************************************
 
 			if (blocks)
@@ -761,7 +769,7 @@ void main()
 					foreach (ij, block2; blocks[i+1..$])
 						if (block2.w == block.w && block2.h == block.h)
 						{
-							int j = i+1 + ij;
+							int j = cast(int)(i+1 + ij);
 							output ~= format("				compressed.block%dx = compressed.block%dx;", i, j);
 							output ~= format("				compressed.block%dy = compressed.block%dy;", i, j);
 							if (i+1 == j)
@@ -793,7 +801,7 @@ void main()
 					foreach (ij, block2; blocks[i+1..$])
 						if (block2.w == block.w && block2.h == block.h)
 						{
-							int j = i+1 + ij;
+							int j = cast(int)(i+1 + ij);
 							output ~= format("				uint8_t x2 = compressed.block%dx, y2 = compressed.block%dy;", j, j);
 							output ~= format("				if (x2 == %d && y2 == %d)", block2.ix-1, block2.iy-1);
 							output ~= format("					return;");
@@ -860,7 +868,7 @@ void main()
 				output ~= "}";
 				output ~= "";
 			}
-			
+
 			// **********************************************************************************************************
 
 			if (turnstiles)
@@ -891,6 +899,7 @@ void main()
 							break;
 						case TurnstileType.Plus:
 							break;
+						default: break;
 					}
 					output ~= format("			break;");
 					output ~= format("		}");
@@ -925,6 +934,7 @@ void main()
 							break;
 						case TurnstileType.Plus:
 							break;
+						default: break;
 					}
 					output ~= format("			break;");
 					output ~= format("		}");
@@ -933,20 +943,20 @@ void main()
 				output ~= "}";
 				output ~= "";
 			}
-			
+
 			// **********************************************************************************************************
 
-			write(format("%d.cpp", levelNr), output.join(\n));
+			std.file.write(format("%d.cpp", levelNr), output.join('\n'));
 		}
-		catch (Object o)
+		catch (Exception o)
 		{
-			writefln("Error with level %d: %s", levelNr, o.toString());
+			writefln("Error with level %d: %s", levelNr, o.stringof);
 		}
 }
 
-const byte DX[4] = [0, 1, 0, -1];
-const byte DY[4] = [-1, 0, 1, 0];
-const char DR[4] = "^>`<";
+const byte[4] DX = [0, 1, 0, -1];
+const byte[4] DY = [-1, 0, 1, 0];
+const char[4] DR = "^>`<";
 
 // log2 of x, rounded up (how many bits do we need to store a number from 0 to x-1)
 uint log2(uint x)
